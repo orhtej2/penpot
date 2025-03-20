@@ -653,8 +653,7 @@ impl RenderState {
 
                         self.render_shape_enter(element, mask);
                         if !node_render_state.id.is_nil() {
-                            let element_id = element.id;
-                            self.render_shape(element, modifiers.get(&element_id), clip_bounds);
+                            self.render_shape(element, modifiers.get(&element.id), clip_bounds);
                         } else {
                             self.apply_drawing_to_render_canvas(Some(&element));
                         }
@@ -669,9 +668,8 @@ impl RenderState {
                         });
 
                         if element.is_recursive() {
-                            let element_id = element.id;
                             let children_clip_bounds = node_render_state
-                                .get_children_clip_bounds(element, modifiers.get(&element_id));
+                                .get_children_clip_bounds(element, modifiers.get(&element.id));
                             for child_id in element.children_ids().iter().rev() {
                                 self.pending_nodes.push(NodeRenderState {
                                     id: *child_id,
