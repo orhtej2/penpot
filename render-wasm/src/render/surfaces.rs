@@ -4,6 +4,8 @@ use skia_safe::{self as skia, Paint, RRect};
 
 use super::{gpu_state::GpuState, tiles::Tile};
 
+use crate::render::strokes;
+use crate::shapes::Stroke;
 use base64::{engine::general_purpose, Engine as _};
 use std::collections::HashMap;
 
@@ -209,6 +211,27 @@ impl Surfaces {
     pub fn draw_path_to(&mut self, id: SurfaceId, shape: &Shape, paint: &Paint) {
         if let Some(path) = shape.get_skia_path() {
             self.canvas(id).draw_path(&path, paint);
+        }
+    }
+
+    pub fn draw_border_path_to(
+        &mut self,
+        id: SurfaceId,
+        shape: &Shape,
+        paint: &Paint,
+        stroke: &Stroke,
+    ) {
+        if let Some(path) = shape.shape_type.path() {
+            strokes::draw_stroke_on_path(
+                self.canvas(id),
+                stroke,
+                path,
+                &shape.selrect,
+                shape.to_path_transform().as_ref(),
+                &shape.svg_attrs,
+                1.0,
+                &paint,
+            );
         }
     }
 

@@ -1,4 +1,4 @@
-use skia_safe::{self as skia, image_filters, ImageFilter};
+use skia_safe::{self as skia, image_filters, ImageFilter, Paint};
 
 use super::Color;
 
@@ -62,8 +62,8 @@ impl Shadow {
         self.hidden
     }
 
-    pub fn to_paint(&self, scale: f32) -> skia::Paint {
-        let mut paint = skia::Paint::default();
+    pub fn to_paint(&self, scale: f32) -> Paint {
+        let mut paint = Paint::default();
 
         let image_filter = match self.style {
             ShadowStyle::Drop => self.drop_shadow_filters(scale),
@@ -128,8 +128,8 @@ impl Shadow {
 
     // New methods for Drop Shadows
 
-    pub fn get_drop_shadow_paint(&self) -> skia::Paint {
-        let mut paint = skia::Paint::default();
+    pub fn get_drop_shadow_paint(&self) -> Paint {
+        let mut paint = Paint::default();
 
         let image_filter = self.get_drop_shadow_filter();
 
@@ -158,8 +158,8 @@ impl Shadow {
 
     // New methods for Inner Shadows
 
-    pub fn get_inner_shadow_paint(&self) -> skia::Paint {
-        let mut paint = skia::Paint::default();
+    pub fn get_inner_shadow_paint(&self) -> Paint {
+        let mut paint = Paint::default();
 
         let image_filter = self.get_inner_shadow_filter();
 

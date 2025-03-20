@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::math::{Matrix, Point, Rect};
 
 use crate::shapes::{Corners, Fill, ImageFill, Path, Shape, Stroke, StrokeCap, StrokeKind, Type};
-use skia_safe::{self as skia, RRect};
+use skia_safe::{self as skia, Paint, RRect};
 
 use super::{RenderState, SurfaceId};
 
@@ -51,7 +51,7 @@ fn draw_stroke_on_circle(
     canvas.draw_oval(&stroke_rect, &stroke.to_paint(selrect, svg_attrs, scale));
 }
 
-fn draw_stroke_on_path(
+pub fn draw_stroke_on_path(
     canvas: &skia::Canvas,
     stroke: &Stroke,
     path: &Path,
@@ -59,12 +59,14 @@ fn draw_stroke_on_path(
     path_transform: Option<&Matrix>,
     svg_attrs: &HashMap<String, String>,
     scale: f32,
+    paint_stroke: &Paint,
 ) {
     let mut skia_path = path.to_skia_path();
     skia_path.transform(path_transform.unwrap());
 
     let is_open = path.is_open();
-    let paint_stroke = stroke.to_stroked_paint(is_open, selrect, svg_attrs, scale);
+    // Create a default paint_stroke variable
+
     // Draw the different kind of strokes for a path requires different strategies:
     match stroke.render_kind(is_open) {
         // For inner stroke we draw a center stroke (with double width) and clip to the original path (that way the extra outer stroke is removed)
@@ -463,6 +465,7 @@ pub fn render(render_state: &mut RenderState, shape: &Shape, stroke: &Stroke) {
             }
             shape_type @ (Type::Path(_) | Type::Bool(_)) => {
                 if let Some(path) = shape_type.path() {
+                    let paint = stroke.to_stroked_paint(path.is_open(), &selrect, svg_attrs, scale);
                     draw_stroke_on_path(
                         canvas,
                         stroke,
@@ -471,6 +474,7 @@ pub fn render(render_state: &mut RenderState, shape: &Shape, stroke: &Stroke) {
                         path_transform.as_ref(),
                         svg_attrs,
                         scale,
+                        &paint,
                     );
                 }
             }
