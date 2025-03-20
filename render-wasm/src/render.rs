@@ -725,7 +725,6 @@ impl RenderState {
                                     .to_string(),
                             )?;
                             if element.parent_id == Some(Uuid::nil()) {
-                                println!("{:?} {:?}", next_tile, id);
                                 self.pending_nodes.push(NodeRenderState {
                                     id: *id,
                                     visited_children: false,
