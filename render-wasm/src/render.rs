@@ -599,7 +599,6 @@ impl RenderState {
                           "Error: Element with root_id {node_render_state.id} not found in the tree."
                               .to_string(),
                       )?;
-                        let mut element = element.clone();
 
                         if visited_children {
                             if !visited_mask {
@@ -632,7 +631,7 @@ impl RenderState {
                                     _ => {}
                                 }
                             }
-                            self.render_shape_exit(&mut element, visited_mask);
+                            self.render_shape_exit(element, visited_mask);
                             continue;
                         }
 
@@ -652,14 +651,10 @@ impl RenderState {
                             }
                         }
 
-                        self.render_shape_enter(&mut element, mask);
+                        self.render_shape_enter(element, mask);
                         if !node_render_state.id.is_nil() {
                             let element_id = element.id;
-                            self.render_shape(
-                                &mut element,
-                                modifiers.get(&element_id),
-                                clip_bounds,
-                            );
+                            self.render_shape(element, modifiers.get(&element_id), clip_bounds);
                         } else {
                             self.apply_drawing_to_render_canvas(Some(&element));
                         }
@@ -676,7 +671,7 @@ impl RenderState {
                         if element.is_recursive() {
                             let element_id = element.id;
                             let children_clip_bounds = node_render_state
-                                .get_children_clip_bounds(&mut element, modifiers.get(&element_id));
+                                .get_children_clip_bounds(element, modifiers.get(&element_id));
                             for child_id in element.children_ids().iter().rev() {
                                 self.pending_nodes.push(NodeRenderState {
                                     id: *child_id,
