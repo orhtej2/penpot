@@ -595,99 +595,99 @@ impl RenderState {
                             mask,
                         } = node_render_state;
                         is_empty = false;
-                        if let Some(element) = tree.get_mut(&node_id) {
-                            let mut element = element.clone();
+                        let element = tree.get_mut(&node_id).ok_or(
+                          "Error: Element with root_id {node_render_state.id} not found in the tree."
+                              .to_string(),
+                      )?;
+                        let mut element = element.clone();
 
-                            if visited_children {
-                                if !visited_mask {
-                                    match element.shape_type {
-                                        Type::Group(group) => {
-                                            // When we're dealing with masked groups we need to
-                                            // do a separate extra step to draw the mask (the last
-                                            // element of a masked group) and blend (using
-                                            // the blend mode 'destination-in') the content
-                                            // of the group and the mask.
-                                            if group.masked {
+                        if visited_children {
+                            if !visited_mask {
+                                match element.shape_type {
+                                    Type::Group(group) => {
+                                        // When we're dealing with masked groups we need to
+                                        // do a separate extra step to draw the mask (the last
+                                        // element of a masked group) and blend (using
+                                        // the blend mode 'destination-in') the content
+                                        // of the group and the mask.
+                                        if group.masked {
+                                            self.pending_nodes.push(NodeRenderState {
+                                                id: node_id,
+                                                visited_children: true,
+                                                clip_bounds: None,
+                                                visited_mask: true,
+                                                mask: false,
+                                            });
+                                            if let Some(&mask_id) = element.mask_id() {
                                                 self.pending_nodes.push(NodeRenderState {
-                                                    id: node_id,
-                                                    visited_children: true,
+                                                    id: mask_id,
+                                                    visited_children: false,
                                                     clip_bounds: None,
-                                                    visited_mask: true,
-                                                    mask: false,
+                                                    visited_mask: false,
+                                                    mask: true,
                                                 });
-                                                if let Some(&mask_id) = element.mask_id() {
-                                                    self.pending_nodes.push(NodeRenderState {
-                                                        id: mask_id,
-                                                        visited_children: false,
-                                                        clip_bounds: None,
-                                                        visited_mask: false,
-                                                        mask: true,
-                                                    });
-                                                }
                                             }
                                         }
-                                        _ => {}
                                     }
+                                    _ => {}
                                 }
-                                self.render_shape_exit(&mut element, visited_mask);
+                            }
+                            self.render_shape_exit(&mut element, visited_mask);
+                            continue;
+                        }
+
+                        if !node_render_state.id.is_nil() {
+                            // If we didn't visited_children this shape, then we need to do
+                            let mut transformed_element = element.clone();
+                            if let Some(modifier) = modifiers.get(&node_id) {
+                                transformed_element.apply_transform(modifier);
+                            }
+                            if !transformed_element.extrect().intersects(self.render_area)
+                                || transformed_element.hidden()
+                            {
+                                debug::render_debug_shape(self, &transformed_element, false);
                                 continue;
-                            }
-
-                            if !node_render_state.id.is_nil() {
-                                // If we didn't visited_children this shape, then we need to do
-                                let mut transformed_element = element.clone();
-                                if let Some(modifier) = modifiers.get(&node_id) {
-                                    transformed_element.apply_transform(modifier);
-                                }
-                                if !transformed_element.extrect().intersects(self.render_area)
-                                    || transformed_element.hidden()
-                                {
-                                    debug::render_debug_shape(self, &transformed_element, false);
-                                    continue;
-                                } else {
-                                    debug::render_debug_shape(self, &transformed_element, true);
-                                }
-                            }
-
-                            self.render_shape_enter(&mut element, mask);
-                            if !node_render_state.id.is_nil() {
-                                let element_id = element.id;
-                                self.render_shape(
-                                    &mut element,
-                                    modifiers.get(&element_id),
-                                    clip_bounds,
-                                );
                             } else {
-                                self.apply_drawing_to_render_canvas(Some(&element));
-                            }
-
-                            // Set the node as visited_children before processing children
-                            self.pending_nodes.push(NodeRenderState {
-                                id: node_id,
-                                visited_children: true,
-                                clip_bounds: None,
-                                visited_mask: false,
-                                mask: mask,
-                            });
-
-                            if element.is_recursive() {
-                                let element_id = element.id;
-                                let children_clip_bounds = node_render_state
-                                    .get_children_clip_bounds(
-                                        &mut element,
-                                        modifiers.get(&element_id),
-                                    );
-                                for child_id in element.children_ids().iter().rev() {
-                                    self.pending_nodes.push(NodeRenderState {
-                                        id: *child_id,
-                                        visited_children: false,
-                                        clip_bounds: children_clip_bounds,
-                                        visited_mask: false,
-                                        mask: false,
-                                    });
-                                }
+                                debug::render_debug_shape(self, &transformed_element, true);
                             }
                         }
+
+                        self.render_shape_enter(&mut element, mask);
+                        if !node_render_state.id.is_nil() {
+                            let element_id = element.id;
+                            self.render_shape(
+                                &mut element,
+                                modifiers.get(&element_id),
+                                clip_bounds,
+                            );
+                        } else {
+                            self.apply_drawing_to_render_canvas(Some(&element));
+                        }
+
+                        // Set the node as visited_children before processing children
+                        self.pending_nodes.push(NodeRenderState {
+                            id: node_id,
+                            visited_children: true,
+                            clip_bounds: None,
+                            visited_mask: false,
+                            mask: mask,
+                        });
+
+                        if element.is_recursive() {
+                            let element_id = element.id;
+                            let children_clip_bounds = node_render_state
+                                .get_children_clip_bounds(&mut element, modifiers.get(&element_id));
+                            for child_id in element.children_ids().iter().rev() {
+                                self.pending_nodes.push(NodeRenderState {
+                                    id: *child_id,
+                                    visited_children: false,
+                                    clip_bounds: children_clip_bounds,
+                                    visited_mask: false,
+                                    mask: false,
+                                });
+                            }
+                        }
+
                         // We try to avoid doing too many calls to get_time
                         if i % NODE_BATCH_THRESHOLD == 0
                             && get_time() - timestamp > MAX_BLOCKING_TIME_MS
