@@ -597,7 +597,7 @@ impl RenderState {
                         is_empty = false;
                         let element = tree.get_mut(&node_id).ok_or(
                             "Error: Element with root_id {node_render_state.id} not found in the tree."
-                                .to_string()
+                                .to_string(),
                         )?;
 
                         if visited_children {
